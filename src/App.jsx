@@ -11,7 +11,7 @@ export default function App() {
 
   const fetchBookings = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/admin/all');
+      const response = await axios.get('https://hydravision-api.onrender.com/api/admin/all');
       setBookings(response.data);
     } catch (error) {
       console.error("Error connecting to Spring Boot:", error);
@@ -20,7 +20,7 @@ export default function App() {
 
   const approveBooking = async (id) => {
     try {
-      await axios.put(`http://localhost:8080/api/admin/approve/${id}`);
+      await axios.put('https://hydravision-api.onrender.com/api/admin/approve/${id}');
       fetchBookings();
     } catch (error) {
       alert("Database update failed!");
@@ -29,7 +29,7 @@ export default function App() {
 
   const rejectBooking = async (id) => {
     try {
-        await axios.put(`http://localhost:8080/api/admin/reject/${id}`);
+        await axios.put('https://hydravision-api.onrender.com/api/admin/reject/${id}');
         fetchBookings();
     } catch (error) {
         alert("Database update failed!");
@@ -40,7 +40,7 @@ export default function App() {
     // Adding a quick confirmation popup so you don't delete by accident!
     if (window.confirm("Are you sure you want to permanently delete this ad?")) {
       try {
-          await axios.delete(`http://localhost:8080/api/admin/delete/${id}`);
+          await axios.delete('https://hydravision-api.onrender.com/api/admin/delete/${id}');
           fetchBookings(); // Refresh the screen
       } catch (error) {
           alert("Failed to delete the ad from the database.");
@@ -102,7 +102,7 @@ function BookingForm({ onSuccess }) {
     formData.append('imageFile', file);
 
     try {
-      await axios.post('http://localhost:8080/api/bookings/create', formData, {
+      await axios.post('https://hydravision-api.onrender.com/api/bookings/create', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       alert('Payment Successful! Ad submitted for review.');
@@ -181,7 +181,7 @@ function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', marginTop: '20px' }}>
           {bookings.map((booking) => (
             <div key={booking.id} style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-              <img src={`http://localhost:8080/uploads/${booking.imagePath}`} alt="Ad" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+              <img src={`https://hydravision-api.onrender.com/uploads/${booking.imagePath}`} alt="Ad" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
               <div style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <span style={{ fontWeight: 'bold', color: '#334155' }}>{booking.timeSlot.split(' ')[0]}</span>
@@ -233,7 +233,7 @@ function BillboardSimulator({ bookings }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{ width: '100%', maxWidth: '900px', height: '500px', backgroundColor: 'black', borderRadius: '12px', overflow: 'hidden', position: 'relative', border: '12px solid #1e293b', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
-        <img src={`http://localhost:8080/uploads/${bookings[currentIndex].imagePath}`} alt="Live Ad" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <img src={'https://hydravision-api.onrender.com/uploads/${bookings[currentIndex].imagePath}'} alt="Live Ad" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         <div style={{ position: 'absolute', top: '20px', right: '20px', backgroundColor: '#ef4444', color: 'white', padding: '4px 12px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px', animation: 'pulse 2s infinite' }}>LIVE</div>
       </div>
       <style>{`@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }`}</style>
