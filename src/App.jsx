@@ -20,28 +20,27 @@ export default function App() {
 
   const approveBooking = async (id) => {
     try {
-      await axios.put('https://hydravision-api.onrender.com/api/admin/approve/${id}');
+      await axios.put(`https://hydravision-api.onrender.com/api/admin/approve/${id}`);
       fetchBookings();
     } catch (error) {
-      alert("Database update failed!");
+      alert("Database update failed! Did you add WebConfig.java to your backend?");
     }
   };
 
   const rejectBooking = async (id) => {
     try {
-        await axios.put('https://hydravision-api.onrender.com/api/admin/reject/${id}');
+        await axios.put(`https://hydravision-api.onrender.com/api/admin/reject/${id}`);
         fetchBookings();
     } catch (error) {
-        alert("Database update failed!");
+        alert("Database update failed! Did you add WebConfig.java to your backend?");
     }
   };
 
   const deleteBooking = async (id) => {
-    // Adding a quick confirmation popup so you don't delete by accident!
     if (window.confirm("Are you sure you want to permanently delete this ad?")) {
       try {
-          await axios.delete('https://hydravision-api.onrender.com/api/admin/delete/${id}');
-          fetchBookings(); // Refresh the screen
+          await axios.delete(`https://hydravision-api.onrender.com/api/admin/delete/${id}`);
+          fetchBookings(); 
       } catch (error) {
           alert("Failed to delete the ad from the database.");
       }
@@ -72,19 +71,18 @@ export default function App() {
 }
 
 // ==========================================
-// 1. THE BOOKING PAGE (Dynamic DOOH Pricing)
+// 1. THE BOOKING PAGE
 // ==========================================
 function BookingForm({ onSuccess }) {
   const [file, setFile] = useState(null);
   const [timeSlot, setTimeSlot] = useState('18:00 - 19:00 (Evening Prime)');
   const [loading, setLoading] = useState(false);
 
-  // Dynamic pricing logic (Hyderabad Traffic Simulation)
   const getPriceForSlot = (slot) => {
-    if (slot.includes('18:00') || slot.includes('19:00')) return 5000; // Peak Evening Traffic (Jubilee Hills)
-    if (slot.includes('09:00') || slot.includes('10:00')) return 4000; // Peak Morning Commute (Madhapur)
-    if (slot.includes('14:00')) return 1500; // Afternoon Lull
-    return 1000; // Base rate
+    if (slot.includes('18:00') || slot.includes('19:00')) return 5000; 
+    if (slot.includes('09:00') || slot.includes('10:00')) return 4000; 
+    if (slot.includes('14:00')) return 1500; 
+    return 1000; 
   };
 
   const currentPrice = getPriceForSlot(timeSlot);
@@ -98,7 +96,7 @@ function BookingForm({ onSuccess }) {
     formData.append('userId', 1); 
     formData.append('screenId', 1); 
     formData.append('timeSlot', timeSlot);
-    formData.append('amountPaid', currentPrice); // Sending the dynamic price to Java!
+    formData.append('amountPaid', currentPrice); 
     formData.append('imageFile', file);
 
     try {
@@ -135,7 +133,6 @@ function BookingForm({ onSuccess }) {
           <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} style={{ width: '100%', padding: '10px', marginTop: '5px', border: '1px dashed #cbd5e1', borderRadius: '6px' }} />
         </div>
 
-        {/* Dynamic Price Display */}
         <div style={{ backgroundColor: '#f0fdf4', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #22c55e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ color: '#166534', fontWeight: 'bold' }}>Total Cost:</span>
           <span style={{ color: '#15803d', fontSize: '24px', fontWeight: '900' }}>₹{currentPrice.toLocaleString()}</span>
@@ -150,18 +147,15 @@ function BookingForm({ onSuccess }) {
 }
 
 // ==========================================
-// 2. ADMIN PANEL COMPONENT (With Revenue Dashboard)
+// 2. ADMIN PANEL COMPONENT
 // ==========================================
 function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
-  // --- CALCULATE REVENUE ---
-  // This looks at all 'APPROVED' bookings and adds up their 'amountPaid'
   const totalRevenue = bookings
     .filter(b => b.status === 'APPROVED')
     .reduce((sum, booking) => sum + booking.amountPaid, 0);
 
   return (
     <div>
-      {/* 🚀 The Revenue KPI Card */}
       <div style={{ backgroundColor: '#0f172a', color: 'white', padding: '20px', borderRadius: '12px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 10px 15px rgba(0,0,0,0.1)' }}>
         <div>
           <h3 style={{ margin: '0 0 5px 0', color: '#94a3b8', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Approved Revenue</h3>
@@ -181,7 +175,10 @@ function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', marginTop: '20px' }}>
           {bookings.map((booking) => (
             <div key={booking.id} style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+              
+              {/* FIXED IMAGE TAG HERE */}
               <img src={`https://hydravision-api.onrender.com/uploads/${booking.imagePath}`} alt="Ad" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+              
               <div style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <span style={{ fontWeight: 'bold', color: '#334155' }}>{booking.timeSlot.split(' ')[0]}</span>
@@ -194,7 +191,6 @@ function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
                   </span>
                 </p>
 
-                {/* Always show the Delete button, no matter the status */}
                 <div style={{ display: 'flex', gap: '10px', marginTop: '15px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
                   {booking.status === 'PENDING' && (
                     <>
@@ -202,7 +198,6 @@ function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
                       <button onClick={() => onReject(booking.id)} style={{ flex: 1, padding: '8px', backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Reject</button>
                     </>
                   )}
-                  {/* The new Trash button */}
                   <button onClick={() => onDelete(booking.id)} style={{ padding: '8px 15px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>🗑️ Delete</button>
                 </div>
               </div>
@@ -233,7 +228,10 @@ function BillboardSimulator({ bookings }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{ width: '100%', maxWidth: '900px', height: '500px', backgroundColor: 'black', borderRadius: '12px', overflow: 'hidden', position: 'relative', border: '12px solid #1e293b', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
-        <img src={'https://hydravision-api.onrender.com/uploads/${bookings[currentIndex].imagePath}'} alt="Live Ad" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        
+        {/* FIXED IMAGE TAG HERE */}
+        <img src={`https://hydravision-api.onrender.com/uploads/${bookings[currentIndex].imagePath}`} alt="Live Ad" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        
         <div style={{ position: 'absolute', top: '20px', right: '20px', backgroundColor: '#ef4444', color: 'white', padding: '4px 12px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px', animation: 'pulse 2s infinite' }}>LIVE</div>
       </div>
       <style>{`@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }`}</style>
