@@ -177,7 +177,7 @@ function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
             <div key={booking.id} style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
               
               {/* FIXED IMAGE TAG HERE */}
-              <img src={`https://hydravision-api.onrender.com/uploads/${booking.imagePath}`} alt="Ad" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+              <img src={booking.imagePath} alt="Ad" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
               
               <div style={{ padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -230,7 +230,7 @@ function BillboardSimulator({ bookings }) {
       <div style={{ width: '100%', maxWidth: '900px', height: '500px', backgroundColor: 'black', borderRadius: '12px', overflow: 'hidden', position: 'relative', border: '12px solid #1e293b', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
         
         {/* FIXED IMAGE TAG HERE */}
-        <img src={`https://hydravision-api.onrender.com/uploads/${bookings[currentIndex].imagePath}`} alt="Live Ad" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <img src={bookings[currentIndex].imagePath} alt="Live Ad" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         
         <div style={{ position: 'absolute', top: '20px', right: '20px', backgroundColor: '#ef4444', color: 'white', padding: '4px 12px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px', animation: 'pulse 2s infinite' }}>LIVE</div>
       </div>
