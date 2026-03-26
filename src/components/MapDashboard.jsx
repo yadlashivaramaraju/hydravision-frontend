@@ -4,7 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 // Your live Mapbox Public Token
-mapboxgl.accessToken = 'pk.eyJ1IjoieWFkbGFzaGl2YXJhbWFyYWp1IiwiYSI6ImNtbjgxamh3OTA2cTIycnNkdnp4YjlmM2gifQ.876TUAt3eUGy4iqW-M2KeA';
+mapboxgl.accessToken = 'pk.eyJ1IjoieWFkbGFzaGl2YXJhbWFyYWp1IiwiYSI6ImNtbjgzMmp6eTA1MGUycXF3bWU5NDVlenUifQ.doLWx-kGpdRsUowMg9mk8Q';
 
 export default function MapDashboard() {
   const navigate = useNavigate();
