@@ -9,7 +9,7 @@ export default function App() {
 
   const fetchBookings = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/bookings/all');
+      const response = await axios.get('https://hydravision-api.onrender.com/api/bookings/all');
       setBookings(response.data);
     } catch (error) {
       console.error("Error connecting to Spring Boot:", error);
@@ -146,7 +146,7 @@ function ExpressBookingView({ fetchBookings }) {
 
     try {
       // Temporarily pointing to your local Java engine for the end-to-end test!
-      await axios.post('http://localhost:8080/api/bookings/create', formData, {
+      await axios.post('https://hydravision-api.onrender.com/api/bookings/create', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }                                                    
   });
       alert('Payment Successful! Ad submitted to the big screen.');
@@ -239,14 +239,14 @@ function ProDashboardView() {
 function AdminWrapper({ bookings, fetchBookings }) {
   const approveBooking = async (id) => {
     try { 
-      await axios.put(`http://localhost:8080/api/bookings/approve/${id}`); 
+      await axios.put(`https://hydravision-api.onrender.com/api/bookings/approve/${id}`); 
       fetchBookings(); 
     } catch (e) { alert("Failed to approve"); }
   };
   
   const rejectBooking = async (id) => {
     try { 
-      await axios.put(`http://localhost:8080/api/bookings/reject/${id}`); 
+      await axios.put(`https://hydravision-api.onrender.com/api/bookings/reject/${id}`); 
       fetchBookings(); 
     } catch (e) { alert("Failed to reject"); }
   };
@@ -254,7 +254,7 @@ function AdminWrapper({ bookings, fetchBookings }) {
   const deleteBooking = async (id) => {
     if (window.confirm("Delete this ad?")) {
       try { 
-        await axios.delete(`http://localhost:8080/api/bookings/delete/${id}`); 
+        await axios.delete(`https://hydravision-api.onrender.com/api/bookings/delete/${id}`); 
         fetchBookings(); 
       } catch (e) { alert("Failed to delete"); }
     }
