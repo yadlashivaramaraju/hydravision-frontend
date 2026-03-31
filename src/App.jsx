@@ -9,7 +9,7 @@ export default function App() {
 
   const fetchBookings = async () => {
     try {
-      const response = await axios.get('https://hydravision-api.onrender.com/api/admin/all');
+      const response = await axios.get('http://localhost:8080/api/bookings/all');
       setBookings(response.data);
     } catch (error) {
       console.error("Error connecting to Spring Boot:", error);
@@ -145,9 +145,10 @@ function ExpressBookingView({ fetchBookings }) {
     formData.append('imageFile', croppedFile);
 
     try {
-      await axios.post('https://hydravision-api.onrender.com/api/bookings/create', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // Temporarily pointing to your local Java engine for the end-to-end test!
+      await axios.post('http://localhost:8080/api/bookings/create', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }                                                    
+  });
       alert('Payment Successful! Ad submitted to the big screen.');
       fetchBookings();
       navigate('/live');
@@ -232,23 +233,45 @@ function ProDashboardView() {
 // ==========================================
 // 5. ADMIN WRAPPER & PANEL
 // ==========================================
+ // ==========================================
+// 5. ADMIN WRAPPER & PANEL (BULLETPROOF VERSION)
+// ==========================================
 function AdminWrapper({ bookings, fetchBookings }) {
   const approveBooking = async (id) => {
-    try { await axios.put(`https://hydravision-api.onrender.com/api/admin/approve/${id}`); fetchBookings(); } catch (e) { alert("Failed"); }
+    try { 
+      await axios.put(`http://localhost:8080/api/bookings/approve/${id}`); 
+      fetchBookings(); 
+    } catch (e) { alert("Failed to approve"); }
   };
+  
   const rejectBooking = async (id) => {
-    try { await axios.put(`https://hydravision-api.onrender.com/api/admin/reject/${id}`); fetchBookings(); } catch (e) { alert("Failed"); }
+    try { 
+      await axios.put(`http://localhost:8080/api/bookings/reject/${id}`); 
+      fetchBookings(); 
+    } catch (e) { alert("Failed to reject"); }
   };
+  
   const deleteBooking = async (id) => {
     if (window.confirm("Delete this ad?")) {
-      try { await axios.delete(`https://hydravision-api.onrender.com/api/admin/delete/${id}`); fetchBookings(); } catch (e) { alert("Failed"); }
+      try { 
+        await axios.delete(`http://localhost:8080/api/bookings/delete/${id}`); 
+        fetchBookings(); 
+      } catch (e) { alert("Failed to delete"); }
     }
   };
+  
   return <AdminPanel bookings={bookings} onApprove={approveBooking} onReject={rejectBooking} onDelete={deleteBooking} />;
 }
 
 function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
-  const totalRevenue = bookings.filter(b => b.status === 'APPROVED').reduce((sum, booking) => sum + booking.amountPaid, 0);
+  // SAFETY NET 1: Ensure bookings is always an array, even if the backend is slow
+  const safeBookings = Array.isArray(bookings) ? bookings : [];
+
+  // SAFETY NET 2: Safely calculate revenue without crashing
+  const totalRevenue = safeBookings
+    .filter(b => b?.status === 'APPROVED')
+    .reduce((sum, booking) => sum + (booking?.amountPaid || 0), 0);
+
   return (
     <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', border: '1px solid #ddd' }}>
@@ -257,22 +280,35 @@ function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
           <h1 style={{ margin: 0, fontSize: '36px', color: '#d30000' }}>₹{totalRevenue.toLocaleString()}</h1>
         </div>
       </div>
+      
       <h2>Ad Review Queue</h2>
-      {bookings.length === 0 ? <p>No ads in database.</p> : (
+      
+      {safeBookings.length === 0 ? <p>No ads in database.</p> : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-          {bookings.map((booking) => (
+          {safeBookings.map((booking) => (
             <div key={booking.id} style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #eee', overflow: 'hidden' }}>
-              <img src={booking.imagePath} alt="Ad" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+              
+              {/* Image Preview */}
+              <img src={booking?.imagePath || 'https://via.placeholder.com/300'} alt="Ad" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+              
               <div style={{ padding: '20px' }}>
-                <p><b>{booking.timeSlot.split(' ')[0]}</b> | ₹{booking.amountPaid}</p>
-                <p>{booking.status}</p>
-                {booking.status === 'PENDING' && (
+                {/* SAFETY NET 3: Safely display time and money */}
+                <p><b>{booking?.timeSlot ? booking.timeSlot.split(' ')[0] : 'Anytime'}</b> | ₹{booking?.amountPaid || 0}</p>
+                
+                {/* Status Badge */}
+                <p style={{ fontWeight: 'bold', color: booking?.status === 'APPROVED' ? 'green' : booking?.status === 'REJECTED' ? 'red' : 'orange' }}>
+                  {booking?.status || 'UNKNOWN'}
+                </p>
+                
+                {/* Action Buttons */}
+                {booking?.status === 'PENDING' && (
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => onApprove(booking.id)} style={{ flex: 1, padding: '8px', backgroundColor: '#000', color: '#fff', border: 'none' }}>Approve</button>
-                    <button onClick={() => onReject(booking.id)} style={{ flex: 1, padding: '8px', border: '1px solid #000' }}>Reject</button>
+                    <button onClick={() => onApprove(booking.id)} style={{ flex: 1, padding: '8px', backgroundColor: '#000', color: '#fff', border: 'none', cursor: 'pointer' }}>Approve</button>
+                    <button onClick={() => onReject(booking.id)} style={{ flex: 1, padding: '8px', border: '1px solid #000', cursor: 'pointer', backgroundColor: '#fff' }}>Reject</button>
                   </div>
                 )}
-                <button onClick={() => onDelete(booking.id)} style={{ width: '100%', marginTop: '10px', padding: '8px', backgroundColor: '#d30000', color: 'white', border: 'none' }}>Delete</button>
+                
+                <button onClick={() => onDelete(booking.id)} style={{ width: '100%', marginTop: '10px', padding: '8px', backgroundColor: '#d30000', color: 'white', border: 'none', cursor: 'pointer' }}>Delete</button>
               </div>
             </div>
           ))}
