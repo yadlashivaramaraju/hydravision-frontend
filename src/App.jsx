@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import BillboardCropper from './components/BillboardCropper'; 
-import MapDashboard from './components/MapDashboard'; // The new Mapbox component!
+import MapDashboard from './components/MapDashboard';
+
+// 1. WE IMPORT THE CLERK BOUNCERS HERE
+import { SignedIn, SignedOut, SignInButton, UserButton, RedirectToSignIn, useUser } from '@clerk/clerk-react';
 
 export default function App() {
   const [bookings, setBookings] = useState([]);
@@ -24,7 +27,7 @@ export default function App() {
     <Router>
       <div style={{ fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif', backgroundColor: '#ffffff', minHeight: '100vh', color: '#000' }}>
         
-        {/* White E-commerce Navigation Bar (TimesSquareBillboard style) */}
+        {/* Navigation Bar */}
         <nav style={{ backgroundColor: '#ffffff', padding: '15px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eaeaea', position: 'sticky', top: 0, zIndex: 100 }}>
           <Link to="/" style={{ textDecoration: 'none', color: '#000' }}>
             <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '900', letterSpacing: '1px' }}>
@@ -38,6 +41,19 @@ export default function App() {
             <Link to="/book" style={{ padding: '12px 24px', backgroundColor: '#d30000', color: 'white', textDecoration: 'none', borderRadius: '4px', fontWeight: 'bold', letterSpacing: '1px' }}>
               BOOK NOW 📅
             </Link>
+
+            {/* 2. CLERK LOGIN BUTTONS INJECTED HERE */}
+            <div style={{ borderLeft: '2px solid #eaeaea', paddingLeft: '20px', display: 'flex', alignItems: 'center' }}>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button style={{ background: 'transparent', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}>Sign In</button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton />
+              </SignedIn>
+            </div>
+
           </div>
         </nav>
 
@@ -48,8 +64,22 @@ export default function App() {
           <Route path="/express" element={<ExpressBookingView fetchBookings={fetchBookings} />} />
           <Route path="/pro" element={<ProDashboardView />} />
           <Route path="/map" element={<MapDashboard />} />
-          <Route path="/admin" element={<AdminWrapper bookings={bookings} fetchBookings={fetchBookings} />} />
           <Route path="/live" element={<BillboardSimulator bookings={bookings.filter(b => b.status === 'APPROVED')} />} />
+          
+          {/* 3. THE ADMIN GATEKEEPER */}
+          <Route path="/admin" element={
+            <>
+              <SignedIn>
+                {/* If logged in, show the Admin Panel */}
+                <AdminWrapper bookings={bookings} fetchBookings={fetchBookings} />
+              </SignedIn>
+              
+              <SignedOut>
+                {/* If NOT logged in, kick them to the login screen */}
+                <RedirectToSignIn />
+              </SignedOut>
+            </>
+          } />
         </Routes>
         
         {/* Simple Footer */}
@@ -62,8 +92,9 @@ export default function App() {
 }
 
 // ==========================================
-// 1. THE HERO LANDING PAGE (TimesSquare Clone)
+// THE REST OF YOUR COMPONENTS REMAIN EXACTLY THE SAME BELOW THIS LINE
 // ==========================================
+
 function HeroLandingPage() {
   const navigate = useNavigate();
   return (
@@ -98,9 +129,6 @@ function HeroLandingPage() {
   );
 }
 
-// ==========================================
-// 2. THE BOOKING SELECTION PAGE
-// ==========================================
 function BookingSelection() {
   const navigate = useNavigate();
   return (
@@ -109,14 +137,12 @@ function BookingSelection() {
         <h1 style={{ fontSize: '2.2rem', marginBottom: '40px' }}>Step 1: Select a Booking</h1>
         
         <div style={{ display: 'flex', gap: '20px', flexDirection: 'row', flexWrap: 'wrap' }}>
-          {/* OPTION 1: B2C Tourist/Personal (RED BOX) */}
           <div onClick={() => navigate('/express')} style={{ flex: 1, minWidth: '300px', backgroundColor: '#d30000', color: '#fff', padding: '50px 30px', borderRadius: '8px', cursor: 'pointer' }}>
             <p style={{ letterSpacing: '2px', fontSize: '0.9rem', marginBottom: '15px' }}>OPTION 1</p>
             <h2 style={{ fontSize: '2rem', lineHeight: '1.2', marginBottom: '20px' }}>I want to share<br/>my photo or video<br/>on the billboard</h2>
             <p style={{ fontSize: '1.2rem' }}>Starting at ₹500</p>
           </div>
 
-          {/* OPTION 2: B2B Brand/Agency (GRAY BOX) */}
           <div onClick={() => navigate('/pro')} style={{ flex: 1, minWidth: '300px', backgroundColor: '#f4f4f4', color: '#000', padding: '50px 30px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #ddd' }}>
             <p style={{ letterSpacing: '2px', fontSize: '0.9rem', marginBottom: '15px', color: '#666' }}>OPTION 2</p>
             <h2 style={{ fontSize: '2rem', lineHeight: '1.2', marginBottom: '20px' }}>I want to promote<br/>my brand<br/>on the billboard</h2>
@@ -129,31 +155,42 @@ function BookingSelection() {
 }
 
 // ==========================================
-// 3. THE B2C EXPRESS FLOW (The Cropper)
+// 3. THE B2C EXPRESS FLOW (The Cropper) - SECURED
 // ==========================================
 function ExpressBookingView({ fetchBookings }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
+  // 1. Grab the real user's digital passport from Clerk
+  const { user, isSignedIn } = useUser();
 
   const handleCheckout = async (croppedFile) => {
+    // 2. The Bouncer: Kick them out if they try to pay without logging in
+    if (!isSignedIn) {
+      alert("Hold up! Please click 'Sign In' at the top right before submitting your ad.");
+      return;
+    }
+
     setLoading(true);
     const formData = new FormData();
-    formData.append('userId', 1);
-    formData.append('screenId', 1);
+    
+    // 3. THE FIX: Send the actual Clerk User ID (e.g. "user_2Xy...") to the database
+    formData.append('userId', user.id); 
+    formData.append('screenId', 1); // We can leave screenId as 1 for now
     formData.append('timeSlot', 'Flash 15 Seconds (Express)'); 
     formData.append('amountPaid', 500); 
     formData.append('imageFile', croppedFile);
 
     try {
-      // Temporarily pointing to your local Java engine for the end-to-end test!
       await axios.post('https://hydravision-api.onrender.com/api/bookings/create', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }                                                    
+      headers: { 'Content-Type': 'multipart/form-data' }                                                
   });
       alert('Payment Successful! Ad submitted to the big screen.');
       fetchBookings();
       navigate('/live');
     } catch (error) {
-      alert('Error connecting to backend.');
+      alert('Error connecting to backend. Check console.');
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -175,9 +212,6 @@ function ExpressBookingView({ fetchBookings }) {
   );
 }
 
-// ==========================================
-// 4. THE B2B "ADQUICK" VIEW (AdQuick Clone)
-// ==========================================
 function ProDashboardView() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -185,13 +219,11 @@ function ProDashboardView() {
   const handleGetStarted = (e) => {
     e.preventDefault();
     if (!email) return alert("Please enter your work email to continue.");
-    navigate('/map'); // Instantly transports them to the 3D map!
+    navigate('/map');
   };
 
   return (
     <div style={{ backgroundColor: '#eff6ff', minHeight: '100vh', paddingBottom: '100px', color: '#0f172a', fontFamily: 'Inter, sans-serif' }}>
-      
-      {/* AdQuick Style Sub-Navbar */}
       <div style={{ padding: '20px 40px', display: 'flex', justifyContent: 'center', gap: '40px', backgroundColor: '#eff6ff', fontWeight: 'bold', color: '#475569', fontSize: '14px' }}>
         <span style={{ cursor: 'pointer' }}>Products ˅</span>
         <span style={{ cursor: 'pointer' }}>Solutions ˅</span>
@@ -199,7 +231,6 @@ function ProDashboardView() {
         <span style={{ cursor: 'pointer' }}>Resources ˅</span>
       </div>
 
-      {/* AdQuick Hero Section */}
       <div style={{ textAlign: 'center', maxWidth: '800px', margin: '60px auto 40px', padding: '0 20px' }}>
         <h1 style={{ fontSize: '3.5rem', color: '#1e40af', lineHeight: '1.2', marginBottom: '20px', fontWeight: '800' }}>
           The Intelligence Platform for<br/>OOH Advertising
@@ -208,7 +239,6 @@ function ProDashboardView() {
           Plan smarter. Buy faster. Measure everything. One platform connecting you to 1,700+ media partners across India.
         </p>
 
-        {/* The Magic Email Input Form */}
         <form onSubmit={handleGetStarted} style={{ display: 'flex', backgroundColor: 'white', padding: '8px', borderRadius: '30px', maxWidth: '500px', margin: '0 auto', boxShadow: '0 10px 25px rgba(59, 130, 246, 0.15)' }}>
           <input 
             type="email" 
@@ -230,12 +260,6 @@ function ProDashboardView() {
   );
 }
 
-// ==========================================
-// 5. ADMIN WRAPPER & PANEL
-// ==========================================
- // ==========================================
-// 5. ADMIN WRAPPER & PANEL (BULLETPROOF VERSION)
-// ==========================================
 function AdminWrapper({ bookings, fetchBookings }) {
   const approveBooking = async (id) => {
     try { 
@@ -264,10 +288,8 @@ function AdminWrapper({ bookings, fetchBookings }) {
 }
 
 function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
-  // SAFETY NET 1: Ensure bookings is always an array, even if the backend is slow
   const safeBookings = Array.isArray(bookings) ? bookings : [];
 
-  // SAFETY NET 2: Safely calculate revenue without crashing
   const totalRevenue = safeBookings
     .filter(b => b?.status === 'APPROVED')
     .reduce((sum, booking) => sum + (booking?.amountPaid || 0), 0);
@@ -287,27 +309,18 @@ function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {safeBookings.map((booking) => (
             <div key={booking.id} style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #eee', overflow: 'hidden' }}>
-              
-              {/* Image Preview */}
               <img src={booking?.imagePath || 'https://via.placeholder.com/300'} alt="Ad" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
-              
               <div style={{ padding: '20px' }}>
-                {/* SAFETY NET 3: Safely display time and money */}
                 <p><b>{booking?.timeSlot ? booking.timeSlot.split(' ')[0] : 'Anytime'}</b> | ₹{booking?.amountPaid || 0}</p>
-                
-                {/* Status Badge */}
                 <p style={{ fontWeight: 'bold', color: booking?.status === 'APPROVED' ? 'green' : booking?.status === 'REJECTED' ? 'red' : 'orange' }}>
                   {booking?.status || 'UNKNOWN'}
                 </p>
-                
-                {/* Action Buttons */}
                 {booking?.status === 'PENDING' && (
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button onClick={() => onApprove(booking.id)} style={{ flex: 1, padding: '8px', backgroundColor: '#000', color: '#fff', border: 'none', cursor: 'pointer' }}>Approve</button>
                     <button onClick={() => onReject(booking.id)} style={{ flex: 1, padding: '8px', border: '1px solid #000', cursor: 'pointer', backgroundColor: '#fff' }}>Reject</button>
                   </div>
                 )}
-                
                 <button onClick={() => onDelete(booking.id)} style={{ width: '100%', marginTop: '10px', padding: '8px', backgroundColor: '#d30000', color: 'white', border: 'none', cursor: 'pointer' }}>Delete</button>
               </div>
             </div>
@@ -318,9 +331,6 @@ function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
   );
 }
 
-// ==========================================
-// 6. BILLBOARD SIMULATOR COMPONENT
-// ==========================================
 function BillboardSimulator({ bookings }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   useEffect(() => {
