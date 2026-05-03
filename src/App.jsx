@@ -178,7 +178,7 @@ function ExpressBookingView({ fetchBookings }) {
     setLoading(true);
     const formData = new FormData();
     
-    formData.append('userId', user.id); 
+    formData.append('userId', 999);
     formData.append('screenId', 1); 
     formData.append('timeSlot', 'Flash 15 Seconds (Express)'); 
     formData.append('amountPaid', 500); 
