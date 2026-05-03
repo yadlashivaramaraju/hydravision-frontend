@@ -185,15 +185,17 @@ function ExpressBookingView({ fetchBookings }) {
     formData.append('imageFile', croppedFile);
 
     try {
-      // 2. FETCH THE TOKEN
+      // 1. Fetch the secure Clerk Token
       const token = await getToken();
 
+      // 2. Send the request
       await axios.post('https://hydravision-api.onrender.com/api/bookings/create', formData, {
         headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}` // 3. SECURELY ATTACH IT TO THE DOOR
+          // We DELETED the 'Content-Type' line here!
+          'Authorization': `Bearer ${token}` // Keep the security pass
         }                                                
       });
+      
       toast.success('Payment Successful! Ad submitted.');
       fetchBookings();
       navigate('/live');
