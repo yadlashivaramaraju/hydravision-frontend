@@ -165,11 +165,11 @@ function ExpressBookingView({ fetchBookings }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   
-  // 1. Grab the real user's digital passport from Clerk
+  // 1. ADDED getToken HERE to get the VIP pass
   const { user, isSignedIn } = useUser();
+  const { getToken } = useAuth(); 
 
   const handleCheckout = async (croppedFile) => {
-    // 2. The Bouncer: Kick them out if they try to pay without logging in
     if (!isSignedIn) {
       toast.error("Please sign in at the top right before submitting your ad.");
       return;
@@ -178,7 +178,6 @@ function ExpressBookingView({ fetchBookings }) {
     setLoading(true);
     const formData = new FormData();
     
-    // 3. Send the actual Clerk User ID (e.g. "user_2Xy...") to the database
     formData.append('userId', user.id); 
     formData.append('screenId', 1); 
     formData.append('timeSlot', 'Flash 15 Seconds (Express)'); 
@@ -186,8 +185,14 @@ function ExpressBookingView({ fetchBookings }) {
     formData.append('imageFile', croppedFile);
 
     try {
+      // 2. FETCH THE TOKEN
+      const token = await getToken();
+
       await axios.post('https://hydravision-api.onrender.com/api/bookings/create', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }                                                
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}` // 3. SECURELY ATTACH IT TO THE DOOR
+        }                                                
       });
       toast.success('Payment Successful! Ad submitted.');
       fetchBookings();
