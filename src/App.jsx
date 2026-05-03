@@ -5,7 +5,7 @@ import BillboardCropper from './components/BillboardCropper';
 import MapDashboard from './components/MapDashboard';
 
 // 1. WE IMPORT THE CLERK BOUNCERS HERE
-import { SignedIn, SignedOut, SignInButton, UserButton, RedirectToSignIn, useUser } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignInButton, UserButton, RedirectToSignIn, useUser, useAuth } from '@clerk/clerk-react';
 
 export default function App() {
   const [bookings, setBookings] = useState([]);
