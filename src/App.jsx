@@ -264,7 +264,6 @@ function AdminWrapper({ bookings, fetchBookings }) {
   const { getToken } = useAuth();
   const [proposals, setProposals] = useState([]);
 
-  // NEW: Fetch the B2B Enterprise Proposals securely
   const fetchProposals = async () => {
     try {
       const token = await getToken();
@@ -277,11 +276,34 @@ function AdminWrapper({ bookings, fetchBookings }) {
     }
   };
 
-  // Run the fetch when the Admin panel loads
   useEffect(() => {
     fetchProposals();
   }, []);
 
+  // --- NEW: B2B Proposal Actions ---
+  const approveProposal = async (id) => {
+    try {
+      const token = await getToken();
+      await axios.put(`https://hydravision-api.onrender.com/api/proposals/approve/${id}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchProposals(); // Refresh the UI
+    } catch (e) { alert("Failed to approve proposal."); console.error(e); }
+  };
+
+  const rejectProposal = async (id) => {
+    if (window.confirm("Are you sure you want to reject this enterprise deal?")) {
+      try {
+        const token = await getToken();
+        await axios.put(`https://hydravision-api.onrender.com/api/proposals/reject/${id}`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        fetchProposals(); // Refresh the UI
+      } catch (e) { alert("Failed to reject proposal."); console.error(e); }
+    }
+  };
+
+  // --- EXISTING: B2C Booking Actions ---
   const approveBooking = async (id) => {
     try { 
       const token = await getToken();
@@ -289,7 +311,7 @@ function AdminWrapper({ bookings, fetchBookings }) {
         headers: { Authorization: `Bearer ${token}` } 
       }); 
       fetchBookings(); 
-    } catch (e) { alert("Failed to approve. Check console."); console.error(e); }
+    } catch (e) { alert("Failed to approve"); console.error(e); }
   };
   
   const rejectBooking = async (id) => {
@@ -314,42 +336,65 @@ function AdminWrapper({ bookings, fetchBookings }) {
     }
   };
   
-  return <AdminPanel bookings={bookings} proposals={proposals} onApprove={approveBooking} onReject={rejectBooking} onDelete={deleteBooking} />;
+  // Notice we are passing the new Proposal functions down to the Panel!
+  return <AdminPanel 
+    bookings={bookings} proposals={proposals} 
+    onApprove={approveBooking} onReject={rejectBooking} onDelete={deleteBooking} 
+    onApproveProposal={approveProposal} onRejectProposal={rejectProposal} 
+  />;
 }
 
-function AdminPanel({ bookings, proposals, onApprove, onReject, onDelete }) {
+function AdminPanel({ bookings, proposals, onApprove, onReject, onDelete, onApproveProposal, onRejectProposal }) {
   const safeBookings = Array.isArray(bookings) ? bookings : [];
   const safeProposals = Array.isArray(proposals) ? proposals : [];
 
-  const totalRevenue = safeBookings
-    .filter(b => b?.status === 'APPROVED')
-    .reduce((sum, booking) => sum + (booking?.amountPaid || 0), 0);
+  // Calculate total revenues
+  const totalB2CRevenue = safeBookings.filter(b => b?.status === 'APPROVED').reduce((sum, b) => sum + (b?.amountPaid || 0), 0);
+  const totalB2BRevenue = safeProposals.filter(p => p?.status === 'APPROVED').reduce((sum, p) => sum + (p?.totalCost || 0), 0);
 
   return (
     <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
       
-      {/* Revenue Header */}
-      <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', border: '1px solid #ddd' }}>
-        <div>
-          <h3 style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>TOTAL APPROVED B2C REVENUE</h3>
-          <h1 style={{ margin: 0, fontSize: '36px', color: '#d30000' }}>₹{totalRevenue.toLocaleString()}</h1>
+      {/* Revenue Dashboard */}
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '40px' }}>
+        <div style={{ flex: 1, backgroundColor: '#fff', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+          <h3 style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', letterSpacing: '1px' }}>APPROVED B2C REVENUE</h3>
+          <h1 style={{ margin: 0, fontSize: '36px', color: '#0f172a' }}>₹{totalB2CRevenue.toLocaleString()}</h1>
+        </div>
+        <div style={{ flex: 1, backgroundColor: '#fff', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+          <h3 style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', letterSpacing: '1px' }}>APPROVED B2B REVENUE</h3>
+          <h1 style={{ margin: 0, fontSize: '36px', color: '#10b981' }}>₹{totalB2BRevenue.toLocaleString()}</h1>
         </div>
       </div>
 
-      {/* NEW: B2B Enterprise Proposals Section */}
-      <h2 style={{ borderBottom: '2px solid #eaeaea', paddingBottom: '10px', marginTop: '40px' }}>Enterprise B2B Proposals</h2>
-      {safeProposals.length === 0 ? <p>No B2B proposals received yet.</p> : (
+      {/* B2B Enterprise Proposals Section */}
+      <h2 style={{ borderBottom: '2px solid #eaeaea', paddingBottom: '10px', color: '#0f172a' }}>Enterprise B2B Proposals</h2>
+      {safeProposals.length === 0 ? <p style={{ color: '#64748b' }}>No B2B proposals received yet.</p> : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px', marginBottom: '50px' }}>
           {safeProposals.map((prop) => (
-            <div key={prop.id} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={prop.id} style={{ backgroundColor: '#f8fafc', padding: '25px', borderRadius: '12px', border: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: '0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
               <div>
-                <h3 style={{ margin: '0 0 5px 0', color: '#0f172a' }}>{prop.agencyEmail}</h3>
-                <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '14px' }}><b>Screens:</b> {prop.selectedScreens}</p>
-                <span style={{ backgroundColor: '#e2e8f0', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>{prop.status}</span>
+                <h3 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '18px' }}>{prop.agencyEmail}</h3>
+                <p style={{ margin: '0 0 12px 0', color: '#475569', fontSize: '14px' }}><b>Targeted Inventory:</b> {prop.selectedScreens}</p>
+                <span style={{ 
+                  backgroundColor: prop.status === 'APPROVED' ? '#dcfce7' : prop.status === 'REJECTED' ? '#fee2e2' : '#e2e8f0', 
+                  color: prop.status === 'APPROVED' ? '#166534' : prop.status === 'REJECTED' ? '#991b1b' : '#334155',
+                  padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' 
+                }}>
+                  {prop.status}
+                </span>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Potential Value</p>
-                <h2 style={{ margin: 0, color: '#10b981' }}>₹{prop.totalCost?.toLocaleString()}</h2>
+              <div style={{ textAlign: 'right', minWidth: '200px' }}>
+                <p style={{ margin: '0 0 5px 0', color: '#64748b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Proposal Value</p>
+                <h2 style={{ margin: '0 0 15px 0', color: '#10b981', fontSize: '28px' }}>₹{prop.totalCost?.toLocaleString()}</h2>
+                
+                {/* NEW: Action Buttons for Pending Proposals */}
+                {prop.status === 'PENDING' && (
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                    <button onClick={() => onApproveProposal(prop.id)} style={{ padding: '8px 16px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Approve</button>
+                    <button onClick={() => onRejectProposal(prop.id)} style={{ padding: '8px 16px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Reject</button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -357,24 +402,27 @@ function AdminPanel({ bookings, proposals, onApprove, onReject, onDelete }) {
       )}
 
       {/* Existing B2C Review Queue */}
-      <h2 style={{ borderBottom: '2px solid #eaeaea', paddingBottom: '10px' }}>B2C Ad Review Queue</h2>
-      {safeBookings.length === 0 ? <p>No B2C ads in database.</p> : (
+      <h2 style={{ borderBottom: '2px solid #eaeaea', paddingBottom: '10px', color: '#0f172a' }}>B2C Ad Review Queue</h2>
+      {safeBookings.length === 0 ? <p style={{ color: '#64748b' }}>No B2C ads in database.</p> : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {safeBookings.map((booking) => (
-            <div key={booking.id} style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #eee', overflow: 'hidden' }}>
-              <img src={booking?.imagePath || 'https://via.placeholder.com/300'} alt="Ad" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+            <div key={booking.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+              <img src={booking?.imagePath || 'https://via.placeholder.com/300'} alt="Ad" style={{ width: '100%', height: '220px', objectFit: 'cover' }} />
               <div style={{ padding: '20px' }}>
-                <p><b>{booking?.timeSlot ? booking.timeSlot.split(' ')[0] : 'Anytime'}</b> | ₹{booking?.amountPaid || 0}</p>
-                <p style={{ fontWeight: 'bold', color: booking?.status === 'APPROVED' ? 'green' : booking?.status === 'REJECTED' ? 'red' : 'orange' }}>
-                  {booking?.status || 'UNKNOWN'}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>{booking?.timeSlot ? booking.timeSlot.split(' ')[0] : 'Anytime'}</p>
+                  <p style={{ margin: 0, fontWeight: '900', color: '#0f172a', fontSize: '18px' }}>₹{booking?.amountPaid || 0}</p>
+                </div>
+                <p style={{ margin: '0 0 15px 0', fontSize: '12px', fontWeight: 'bold', color: booking?.status === 'APPROVED' ? '#10b981' : booking?.status === 'REJECTED' ? '#ef4444' : '#f59e0b' }}>
+                  STATUS: {booking?.status || 'UNKNOWN'}
                 </p>
                 {booking?.status === 'PENDING' && (
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => onApprove(booking.id)} style={{ flex: 1, padding: '8px', backgroundColor: '#000', color: '#fff', border: 'none', cursor: 'pointer' }}>Approve</button>
-                    <button onClick={() => onReject(booking.id)} style={{ flex: 1, padding: '8px', border: '1px solid #000', cursor: 'pointer', backgroundColor: '#fff' }}>Reject</button>
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                    <button onClick={() => onApprove(booking.id)} style={{ flex: 1, padding: '10px', backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Approve</button>
+                    <button onClick={() => onReject(booking.id)} style={{ flex: 1, padding: '10px', border: '1px solid #cbd5e1', color: '#475569', borderRadius: '6px', cursor: 'pointer', backgroundColor: '#fff', fontWeight: 'bold' }}>Reject</button>
                   </div>
                 )}
-                <button onClick={() => onDelete(booking.id)} style={{ width: '100%', marginTop: '10px', padding: '8px', backgroundColor: '#d30000', color: 'white', border: 'none', cursor: 'pointer' }}>Delete</button>
+                <button onClick={() => onDelete(booking.id)} style={{ width: '100%', padding: '10px', backgroundColor: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>Delete Record</button>
               </div>
             </div>
           ))}
