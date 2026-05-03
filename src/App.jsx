@@ -22,7 +22,7 @@ export default function App() {
   useEffect(() => {
     fetchBookings();
   }, []);
-
+  
   return (
     <Router>
       <div style={{ fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif', backgroundColor: '#ffffff', minHeight: '100vh', color: '#000' }}>

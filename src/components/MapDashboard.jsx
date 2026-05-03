@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import axios from 'axios';
 
-// Your live Mapbox Public Token
+// 1. IMPORT CLERK BOUNCERS
+import { useUser, useAuth } from '@clerk/clerk-react';
+
 mapboxgl.accessToken = 'pk.eyJ1IjoieWFkbGFzaGl2YXJhbWFyYWp1IiwiYSI6ImNtbjgzMmp6eTA1MGUycXF3bWU5NDVlenUifQ.doLWx-kGpdRsUowMg9mk8Q';
 
 export default function MapDashboard() {
@@ -13,8 +16,12 @@ export default function MapDashboard() {
   
   const [selectedScreen, setSelectedScreen] = useState(null);
   const [cart, setCart] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock Enterprise Database
+  // 2. GRAB THE USER'S PASSPORT
+  const { user, isSignedIn } = useUser();
+  const { getToken } = useAuth();
+
   const screens = [
     { id: 1, name: "Jubilee Hills Checkpost", city: "Hyderabad", lat: 17.4326, lng: 78.4071, price: 5000, impressions: "12,000/hr", format: "Digital Spectacular" },
     { id: 2, name: "HITEC City Cyber Towers", city: "Hyderabad", lat: 17.4504, lng: 78.3808, price: 7500, impressions: "25,000/hr", format: "Highway LED" },
@@ -23,20 +30,18 @@ export default function MapDashboard() {
     { id: 5, name: "Indiranagar 100ft Rd", city: "Bangalore", lat: 12.9784, lng: 77.6408, price: 7000, impressions: "22,000/hr", format: "Street Furniture" }
   ];
 
-  // Initialize the Map natively
   useEffect(() => {
-    if (map.current) return; // Prevent map from rendering twice
+    if (map.current) return; 
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
       center: [78.4071, 17.4326],
       zoom: 11.5,
-      pitch: 45, // Tilted 3D perspective
-      bearing: -17.6 // Slight rotation
+      pitch: 45, 
+      bearing: -17.6 
     });
 
-    // Add our custom purple pins to the map
     screens.forEach((screen) => {
       const el = document.createElement('div');
       el.innerHTML = `₹${screen.price / 1000}k`;
@@ -50,7 +55,6 @@ export default function MapDashboard() {
       el.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
       el.style.border = '2px solid white';
 
-      // When a user clicks a pin on the map
       el.addEventListener('click', () => {
         setSelectedScreen(screen);
       });
@@ -59,7 +63,7 @@ export default function MapDashboard() {
         .setLngLat([screen.lng, screen.lat])
         .addTo(map.current);
     });
-  }, []); // Empty dependency array ensures this runs exactly once
+  }, []); 
 
   const addToCart = (screen) => {
     if (!cart.find(item => item.id === screen.id)) setCart([...cart, screen]);
@@ -67,10 +71,51 @@ export default function MapDashboard() {
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
 
+  // 3. THE FINAL BOSS: SUBMIT PROPOSAL LOGIC
+  const handleSubmitProposal = async () => {
+    if (!isSignedIn) {
+      alert("Please click 'Exit' and Sign In at the top right before submitting a proposal.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Create a comma-separated string of the screen names they selected
+      const screenNames = cart.map(item => item.name).join(", ");
+      
+      // Get the user's primary email from Clerk
+      const userEmail = user.primaryEmailAddress.emailAddress;
+
+      const proposalData = {
+        agencyEmail: userEmail,
+        selectedScreens: screenNames,
+        totalCost: cartTotal,
+        status: "PENDING"
+      };
+
+      const token = await getToken();
+
+      await axios.post('https://hydravision-api.onrender.com/api/proposals/submit', proposalData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert("Proposal Submitted Successfully! Our team will contact you shortly.");
+      setCart([]); // Clear the cart
+      setSelectedScreen(null);
+      
+    } catch (error) {
+      console.error("Error submitting proposal:", error);
+      alert("Failed to submit proposal. Make sure your Java backend is updated and live.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif' }}>
       
-      {/* LEFT SIDEBAR: The AdQuick Campaign Builder */}
+      {/* LEFT SIDEBAR: The Campaign Builder */}
       <div style={{ width: '400px', backgroundColor: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', zIndex: 10, boxShadow: '5px 0 15px rgba(0,0,0,0.05)' }}>
         
         <div style={{ padding: '25px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -130,8 +175,14 @@ export default function MapDashboard() {
             <span style={{ color: '#64748b' }}>Total Cost:</span>
             <span style={{ fontWeight: '900', color: '#0f172a' }}>₹{cartTotal.toLocaleString()}</span>
           </div>
-          <button disabled={cart.length === 0} style={{ width: '100%', backgroundColor: cart.length > 0 ? '#10b981' : '#cbd5e1', color: 'white', border: 'none', padding: '15px', borderRadius: '8px', fontWeight: 'bold', cursor: cart.length > 0 ? 'pointer' : 'not-allowed', fontSize: '16px' }}>
-            Submit Request for Proposal
+          
+          {/* 4. ATTACH THE ONCLICK EVENT */}
+          <button 
+            onClick={handleSubmitProposal}
+            disabled={cart.length === 0 || isSubmitting} 
+            style={{ width: '100%', backgroundColor: cart.length > 0 ? '#10b981' : '#cbd5e1', color: 'white', border: 'none', padding: '15px', borderRadius: '8px', fontWeight: 'bold', cursor: cart.length > 0 ? 'pointer' : 'not-allowed', fontSize: '16px' }}
+          >
+            {isSubmitting ? "Submitting..." : "Submit Request for Proposal"}
           </button>
         </div>
       </div>
