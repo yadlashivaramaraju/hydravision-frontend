@@ -261,34 +261,65 @@ function ProDashboardView() {
 }
 
 function AdminWrapper({ bookings, fetchBookings }) {
+  const { getToken } = useAuth();
+  const [proposals, setProposals] = useState([]);
+
+  // NEW: Fetch the B2B Enterprise Proposals securely
+  const fetchProposals = async () => {
+    try {
+      const token = await getToken();
+      const res = await axios.get('https://hydravision-api.onrender.com/api/proposals/all', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProposals(res.data);
+    } catch (e) { 
+      console.error("Failed to fetch proposals", e); 
+    }
+  };
+
+  // Run the fetch when the Admin panel loads
+  useEffect(() => {
+    fetchProposals();
+  }, []);
+
   const approveBooking = async (id) => {
     try { 
-      await axios.put(`https://hydravision-api.onrender.com/api/bookings/approve/${id}`); 
+      const token = await getToken();
+      await axios.put(`https://hydravision-api.onrender.com/api/bookings/approve/${id}`, {}, {
+        headers: { Authorization: `Bearer ${token}` } 
+      }); 
       fetchBookings(); 
-    } catch (e) { alert("Failed to approve"); }
+    } catch (e) { alert("Failed to approve. Check console."); console.error(e); }
   };
   
   const rejectBooking = async (id) => {
     try { 
-      await axios.put(`https://hydravision-api.onrender.com/api/bookings/reject/${id}`); 
+      const token = await getToken();
+      await axios.put(`https://hydravision-api.onrender.com/api/bookings/reject/${id}`, {}, {
+        headers: { Authorization: `Bearer ${token}` } 
+      }); 
       fetchBookings(); 
-    } catch (e) { alert("Failed to reject"); }
+    } catch (e) { alert("Failed to reject"); console.error(e); }
   };
   
   const deleteBooking = async (id) => {
     if (window.confirm("Delete this ad?")) {
       try { 
-        await axios.delete(`https://hydravision-api.onrender.com/api/bookings/delete/${id}`); 
+        const token = await getToken();
+        await axios.delete(`https://hydravision-api.onrender.com/api/bookings/delete/${id}`, {
+          headers: { Authorization: `Bearer ${token}` } 
+        }); 
         fetchBookings(); 
-      } catch (e) { alert("Failed to delete"); }
+      } catch (e) { alert("Failed to delete"); console.error(e); }
     }
   };
   
-  return <AdminPanel bookings={bookings} onApprove={approveBooking} onReject={rejectBooking} onDelete={deleteBooking} />;
+  return <AdminPanel bookings={bookings} proposals={proposals} onApprove={approveBooking} onReject={rejectBooking} onDelete={deleteBooking} />;
 }
 
-function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
+function AdminPanel({ bookings, proposals, onApprove, onReject, onDelete }) {
   const safeBookings = Array.isArray(bookings) ? bookings : [];
+  const safeProposals = Array.isArray(proposals) ? proposals : [];
 
   const totalRevenue = safeBookings
     .filter(b => b?.status === 'APPROVED')
@@ -296,16 +327,38 @@ function AdminPanel({ bookings, onApprove, onReject, onDelete }) {
 
   return (
     <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+      
+      {/* Revenue Header */}
       <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', border: '1px solid #ddd' }}>
         <div>
-          <h3 style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>TOTAL APPROVED REVENUE</h3>
+          <h3 style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>TOTAL APPROVED B2C REVENUE</h3>
           <h1 style={{ margin: 0, fontSize: '36px', color: '#d30000' }}>₹{totalRevenue.toLocaleString()}</h1>
         </div>
       </div>
-      
-      <h2>Ad Review Queue</h2>
-      
-      {safeBookings.length === 0 ? <p>No ads in database.</p> : (
+
+      {/* NEW: B2B Enterprise Proposals Section */}
+      <h2 style={{ borderBottom: '2px solid #eaeaea', paddingBottom: '10px', marginTop: '40px' }}>Enterprise B2B Proposals</h2>
+      {safeProposals.length === 0 ? <p>No B2B proposals received yet.</p> : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px', marginBottom: '50px' }}>
+          {safeProposals.map((prop) => (
+            <div key={prop.id} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: '0 0 5px 0', color: '#0f172a' }}>{prop.agencyEmail}</h3>
+                <p style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '14px' }}><b>Screens:</b> {prop.selectedScreens}</p>
+                <span style={{ backgroundColor: '#e2e8f0', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>{prop.status}</span>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Potential Value</p>
+                <h2 style={{ margin: 0, color: '#10b981' }}>₹{prop.totalCost?.toLocaleString()}</h2>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Existing B2C Review Queue */}
+      <h2 style={{ borderBottom: '2px solid #eaeaea', paddingBottom: '10px' }}>B2C Ad Review Queue</h2>
+      {safeBookings.length === 0 ? <p>No B2C ads in database.</p> : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {safeBookings.map((booking) => (
             <div key={booking.id} style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #eee', overflow: 'hidden' }}>
