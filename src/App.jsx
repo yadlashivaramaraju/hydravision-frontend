@@ -3,6 +3,7 @@ import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import BillboardCropper from './components/BillboardCropper'; 
 import MapDashboard from './components/MapDashboard';
+import { Toaster, toast } from 'react-hot-toast';
 
 // 1. WE IMPORT THE CLERK BOUNCERS HERE
 import { SignedIn, SignedOut, SignInButton, UserButton, RedirectToSignIn, useUser, useAuth } from '@clerk/clerk-react';
@@ -27,6 +28,9 @@ export default function App() {
     <Router>
       <div style={{ fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif', backgroundColor: '#ffffff', minHeight: '100vh', color: '#000' }}>
         
+        {/* THE TOAST NOTIFICATION PROVIDER */}
+        <Toaster position="top-center" reverseOrder={false} />
+
         {/* Navigation Bar */}
         <nav style={{ backgroundColor: '#ffffff', padding: '15px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eaeaea', position: 'sticky', top: 0, zIndex: 100 }}>
           <Link to="/" style={{ textDecoration: 'none', color: '#000' }}>
@@ -92,7 +96,7 @@ export default function App() {
 }
 
 // ==========================================
-// THE REST OF YOUR COMPONENTS REMAIN EXACTLY THE SAME BELOW THIS LINE
+// COMPONENTS
 // ==========================================
 
 function HeroLandingPage() {
@@ -167,29 +171,29 @@ function ExpressBookingView({ fetchBookings }) {
   const handleCheckout = async (croppedFile) => {
     // 2. The Bouncer: Kick them out if they try to pay without logging in
     if (!isSignedIn) {
-      alert("Hold up! Please click 'Sign In' at the top right before submitting your ad.");
+      toast.error("Please sign in at the top right before submitting your ad.");
       return;
     }
 
     setLoading(true);
     const formData = new FormData();
     
-    // 3. THE FIX: Send the actual Clerk User ID (e.g. "user_2Xy...") to the database
+    // 3. Send the actual Clerk User ID (e.g. "user_2Xy...") to the database
     formData.append('userId', user.id); 
-    formData.append('screenId', 1); // We can leave screenId as 1 for now
+    formData.append('screenId', 1); 
     formData.append('timeSlot', 'Flash 15 Seconds (Express)'); 
     formData.append('amountPaid', 500); 
     formData.append('imageFile', croppedFile);
 
     try {
       await axios.post('https://hydravision-api.onrender.com/api/bookings/create', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }                                                
-  });
-      alert('Payment Successful! Ad submitted to the big screen.');
+        headers: { 'Content-Type': 'multipart/form-data' }                                                
+      });
+      toast.success('Payment Successful! Ad submitted.');
       fetchBookings();
       navigate('/live');
     } catch (error) {
-      alert('Error connecting to backend. Check console.');
+      toast.error('Error connecting to backend. Check console.');
       console.error(error);
     } finally {
       setLoading(false);
@@ -218,7 +222,10 @@ function ProDashboardView() {
 
   const handleGetStarted = (e) => {
     e.preventDefault();
-    if (!email) return alert("Please enter your work email to continue.");
+    if (!email) {
+      toast.error("Please enter your work email to continue.");
+      return;
+    }
     navigate('/map');
   };
 
@@ -287,8 +294,9 @@ function AdminWrapper({ bookings, fetchBookings }) {
       await axios.put(`https://hydravision-api.onrender.com/api/proposals/approve/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchProposals(); // Refresh the UI
-    } catch (e) { alert("Failed to approve proposal."); console.error(e); }
+      fetchProposals(); 
+      toast.success("Enterprise deal approved!");
+    } catch (e) { toast.error("Failed to approve proposal."); console.error(e); }
   };
 
   const rejectProposal = async (id) => {
@@ -298,8 +306,9 @@ function AdminWrapper({ bookings, fetchBookings }) {
         await axios.put(`https://hydravision-api.onrender.com/api/proposals/reject/${id}`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        fetchProposals(); // Refresh the UI
-      } catch (e) { alert("Failed to reject proposal."); console.error(e); }
+        fetchProposals(); 
+        toast.success("Proposal rejected.");
+      } catch (e) { toast.error("Failed to reject proposal."); console.error(e); }
     }
   };
 
@@ -311,7 +320,8 @@ function AdminWrapper({ bookings, fetchBookings }) {
         headers: { Authorization: `Bearer ${token}` } 
       }); 
       fetchBookings(); 
-    } catch (e) { alert("Failed to approve"); console.error(e); }
+      toast.success("B2C Ad approved!");
+    } catch (e) { toast.error("Failed to approve."); console.error(e); }
   };
   
   const rejectBooking = async (id) => {
@@ -321,7 +331,8 @@ function AdminWrapper({ bookings, fetchBookings }) {
         headers: { Authorization: `Bearer ${token}` } 
       }); 
       fetchBookings(); 
-    } catch (e) { alert("Failed to reject"); console.error(e); }
+      toast.success("B2C Ad rejected.");
+    } catch (e) { toast.error("Failed to reject."); console.error(e); }
   };
   
   const deleteBooking = async (id) => {
@@ -332,11 +343,11 @@ function AdminWrapper({ bookings, fetchBookings }) {
           headers: { Authorization: `Bearer ${token}` } 
         }); 
         fetchBookings(); 
-      } catch (e) { alert("Failed to delete"); console.error(e); }
+        toast.success("Record deleted successfully.");
+      } catch (e) { toast.error("Failed to delete."); console.error(e); }
     }
   };
   
-  // Notice we are passing the new Proposal functions down to the Panel!
   return <AdminPanel 
     bookings={bookings} proposals={proposals} 
     onApprove={approveBooking} onReject={rejectBooking} onDelete={deleteBooking} 
@@ -388,7 +399,7 @@ function AdminPanel({ bookings, proposals, onApprove, onReject, onDelete, onAppr
                 <p style={{ margin: '0 0 5px 0', color: '#64748b', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Proposal Value</p>
                 <h2 style={{ margin: '0 0 15px 0', color: '#10b981', fontSize: '28px' }}>₹{prop.totalCost?.toLocaleString()}</h2>
                 
-                {/* NEW: Action Buttons for Pending Proposals */}
+                {/* Action Buttons for Pending Proposals */}
                 {prop.status === 'PENDING' && (
                   <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                     <button onClick={() => onApproveProposal(prop.id)} style={{ padding: '8px 16px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Approve</button>
