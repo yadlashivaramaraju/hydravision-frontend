@@ -112,7 +112,7 @@ function HeroLandingPage() {
         justifyContent: 'center', 
         padding: '0 10%' 
       }}>
-        <h1 style={{ color: '#fff', fontSize: '4rem', maxWidth: '800px', lineHeight: '1.2', marginBottom: '20px' }}>
+        <h1 style={{ color: '#fff', fontSize: 'clamp(2rem, 8vw, 4rem)', maxWidth: '800px', lineHeight: '1.2', marginBottom: '20px' }}>
           See yourself and your loved ones on a massive billboard in Hyderabad for ₹500!
         </h1>
         <div>
