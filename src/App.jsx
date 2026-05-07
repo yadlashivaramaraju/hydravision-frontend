@@ -31,33 +31,32 @@ export default function App() {
         {/* THE TOAST NOTIFICATION PROVIDER */}
         <Toaster position="top-center" reverseOrder={false} />
 
-        {/* Navigation Bar */}
-        <nav style={{ backgroundColor: '#ffffff', padding: '15px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eaeaea', position: 'sticky', top: 0, zIndex: 100 }}>
+        {/* Flexible Navigation Bar */}
+        <nav style={{ backgroundColor: '#ffffff', padding: '15px 20px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eaeaea', position: 'sticky', top: 0, zIndex: 100, gap: '15px' }}>
           <Link to="/" style={{ textDecoration: 'none', color: '#000' }}>
-            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '900', letterSpacing: '1px' }}>
-              WELCOME TO<br/><span style={{ fontSize: '18px', fontWeight: 'normal' }}>HYDRAVISION.COM</span>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', letterSpacing: '1px' }}>
+              WELCOME TO<br/><span style={{ fontSize: '14px', fontWeight: 'normal' }}>HYDRAVISION.COM</span>
             </h2>
           </Link>
-          <div style={{ display: 'flex', gap: '30px', alignItems: 'center', fontWeight: 'bold', fontSize: '15px' }}>
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center', fontWeight: 'bold', fontSize: '14px', flexWrap: 'wrap' }}>
             <Link to="/" style={{ color: '#000', textDecoration: 'none' }}>Home</Link>
             <Link to="/live" style={{ color: '#000', textDecoration: 'none' }}>Live Stream</Link>
             <Link to="/admin" style={{ color: '#000', textDecoration: 'none' }}>Admin</Link>
-            <Link to="/book" style={{ padding: '12px 24px', backgroundColor: '#d30000', color: 'white', textDecoration: 'none', borderRadius: '4px', fontWeight: 'bold', letterSpacing: '1px' }}>
+            <Link to="/book" style={{ padding: '10px 15px', backgroundColor: '#d30000', color: 'white', textDecoration: 'none', borderRadius: '4px', fontWeight: 'bold' }}>
               BOOK NOW 📅
             </Link>
 
             {/* 2. CLERK LOGIN BUTTONS INJECTED HERE */}
-            <div style={{ borderLeft: '2px solid #eaeaea', paddingLeft: '20px', display: 'flex', alignItems: 'center' }}>
+            <div style={{ borderLeft: '2px solid #eaeaea', paddingLeft: '15px', display: 'flex', alignItems: 'center' }}>
               <SignedOut>
                 <SignInButton mode="modal">
-                  <button style={{ background: 'transparent', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}>Sign In</button>
+                  <button style={{ background: 'transparent', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>Sign In</button>
                 </SignInButton>
               </SignedOut>
               <SignedIn>
                 <UserButton />
               </SignedIn>
             </div>
-
           </div>
         </nav>
 
@@ -374,12 +373,12 @@ function AdminPanel({ bookings, proposals, onApprove, onReject, onDelete, onAppr
     <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
       
       {/* Revenue Dashboard */}
-      <div style={{ display: 'flex', gap: '20px', marginBottom: '40px' }}>
-        <div style={{ flex: 1, backgroundColor: '#fff', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '40px', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: '250px', backgroundColor: '#fff', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
           <h3 style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', letterSpacing: '1px' }}>APPROVED B2C REVENUE</h3>
           <h1 style={{ margin: 0, fontSize: '36px', color: '#0f172a' }}>₹{totalB2CRevenue.toLocaleString()}</h1>
         </div>
-        <div style={{ flex: 1, backgroundColor: '#fff', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+        <div style={{ flex: 1, minWidth: '250px', backgroundColor: '#fff', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
           <h3 style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '13px', letterSpacing: '1px' }}>APPROVED B2B REVENUE</h3>
           <h1 style={{ margin: 0, fontSize: '36px', color: '#10b981' }}>₹{totalB2BRevenue.toLocaleString()}</h1>
         </div>
@@ -390,7 +389,7 @@ function AdminPanel({ bookings, proposals, onApprove, onReject, onDelete, onAppr
       {safeProposals.length === 0 ? <p style={{ color: '#64748b' }}>No B2B proposals received yet.</p> : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px', marginBottom: '50px' }}>
           {safeProposals.map((prop) => (
-            <div key={prop.id} style={{ backgroundColor: '#f8fafc', padding: '25px', borderRadius: '12px', border: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: '0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+            <div key={prop.id} style={{ backgroundColor: '#f8fafc', padding: '25px', borderRadius: '12px', border: '1px solid #cbd5e1', display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'space-between', alignItems: 'center', transition: '0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
               <div>
                 <h3 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '18px' }}>{prop.agencyEmail}</h3>
                 <p style={{ margin: '0 0 12px 0', color: '#475569', fontSize: '14px' }}><b>Targeted Inventory:</b> {prop.selectedScreens}</p>

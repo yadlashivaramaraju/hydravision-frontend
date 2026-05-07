@@ -115,7 +115,7 @@ export default function MapDashboard() {
     .dashboard-wrapper {
       display: flex;
       flex-direction: row;
-      height: 100vh;
+      height: calc(100vh - 80px); /* Adjusts height so Nav bar doesn't push it down */
       width: 100vw;
       overflow: hidden;
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -133,19 +133,22 @@ export default function MapDashboard() {
       position: relative;
     }
     
-    /* MOBILE PHONES: Stack them on top of each other! */
-    @media (max-width: 768px) {
+    /* MOBILE PHONES & TABLETS: Stack them! */
+    @media (max-width: 900px) {
       .dashboard-wrapper {
-        flex-direction: column-reverse; /* Map on top, sidebar on bottom */
+        flex-direction: column-reverse !important;
+        height: auto !important;
+        overflow-y: auto !important;
       }
       .dashboard-sidebar {
-        width: 100%;
-        height: 50vh; /* Sidebar takes bottom half */
-        box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+        width: 100% !important;
+        height: 50vh !important;
+        box-shadow: 0 -5px 15px rgba(0,0,0,0.05) !important;
       }
       .dashboard-map {
-        height: 50vh; /* Map takes top half */
-        flex: none;
+        width: 100% !important;
+        height: 50vh !important;
+        flex: none !important;
       }
     }
   `;
