@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import axios from 'axios';
+import { toast } from 'react-hot-toast'; // 1. IMPORT TOAST NOTIFICATIONS
 
-// 1. IMPORT CLERK BOUNCERS
+// 2. IMPORT CLERK BOUNCERS
 import { useUser, useAuth } from '@clerk/clerk-react';
 
 mapboxgl.accessToken = 'pk.eyJ1IjoieWFkbGFzaGl2YXJhbWFyYWp1IiwiYSI6ImNtbjgzMmp6eTA1MGUycXF3bWU5NDVlenUifQ.doLWx-kGpdRsUowMg9mk8Q';
@@ -18,7 +19,7 @@ export default function MapDashboard() {
   const [cart, setCart] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 2. GRAB THE USER'S PASSPORT
+  // 3. GRAB THE USER'S PASSPORT
   const { user, isSignedIn } = useUser();
   const { getToken } = useAuth();
 
@@ -71,20 +72,17 @@ export default function MapDashboard() {
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
 
-  // 3. THE FINAL BOSS: SUBMIT PROPOSAL LOGIC
+  // 4. THE FINAL BOSS: SUBMIT PROPOSAL LOGIC
   const handleSubmitProposal = async () => {
     if (!isSignedIn) {
-      alert("Please click 'Exit' and Sign In at the top right before submitting a proposal.");
+      toast.error("Please click 'Exit' and Sign In at the top right before submitting a proposal.");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Create a comma-separated string of the screen names they selected
       const screenNames = cart.map(item => item.name).join(", ");
-      
-      // Get the user's primary email from Clerk
       const userEmail = user.primaryEmailAddress.emailAddress;
 
       const proposalData = {
@@ -100,97 +98,141 @@ export default function MapDashboard() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      alert("Proposal Submitted Successfully! Our team will contact you shortly.");
+      toast.success("Proposal Submitted Successfully! Our team will contact you shortly.");
       setCart([]); // Clear the cart
       setSelectedScreen(null);
       
     } catch (error) {
       console.error("Error submitting proposal:", error);
-      alert("Failed to submit proposal. Make sure your Java backend is updated and live.");
+      toast.error("Failed to submit proposal. Make sure your Java backend is updated and live.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // --- NEW: Injecting the Responsive CSS Magic ---
+  const responsiveStyles = `
+    .dashboard-wrapper {
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .dashboard-sidebar {
+      width: 400px;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      box-shadow: 5px 0 15px rgba(0,0,0,0.05);
+    }
+    .dashboard-map {
+      flex: 1;
+      position: relative;
+    }
+    
+    /* MOBILE PHONES: Stack them on top of each other! */
+    @media (max-width: 768px) {
+      .dashboard-wrapper {
+        flex-direction: column-reverse; /* Map on top, sidebar on bottom */
+      }
+      .dashboard-sidebar {
+        width: 100%;
+        height: 50vh; /* Sidebar takes bottom half */
+        box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+      }
+      .dashboard-map {
+        height: 50vh; /* Map takes top half */
+        flex: none;
+      }
+    }
+  `;
+
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif' }}>
-      
-      {/* LEFT SIDEBAR: The Campaign Builder */}
-      <div style={{ width: '400px', backgroundColor: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', zIndex: 10, boxShadow: '5px 0 15px rgba(0,0,0,0.05)' }}>
+    <>
+      {/* Injecting the styles into the document */}
+      <style>{responsiveStyles}</style>
+
+      <div className="dashboard-wrapper">
         
-        <div style={{ padding: '25px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ color: '#0f172a', margin: '0 0 5px 0', fontSize: '20px' }}>Campaign Builder</h2>
-            <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>Select inventory from the map.</p>
-          </div>
-          <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 'bold' }}>Exit</button>
-        </div>
-        
-        <div style={{ flex: 1, padding: '25px', overflowY: 'auto', backgroundColor: '#ffffff' }}>
-          <h3 style={{ fontSize: '14px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px' }}>Selected Inventory</h3>
+        {/* LEFT SIDEBAR (Or Bottom half on Mobile): The Campaign Builder */}
+        <div className="dashboard-sidebar">
           
-          {selectedScreen ? (
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', backgroundColor: '#f8fafc' }}>
-              <span style={{ backgroundColor: '#e0e7ff', color: '#4f46e5', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>{selectedScreen.format}</span>
-              <h3 style={{ margin: '10px 0', color: '#0f172a', fontSize: '18px' }}>{selectedScreen.name}</h3>
-              <p style={{ margin: '5px 0', color: '#475569', fontSize: '14px' }}>📍 {selectedScreen.city}</p>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', margin: '15px 0', padding: '10px 0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-                <div>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Est. Impressions</p>
-                  <p style={{ margin: 0, fontWeight: 'bold', color: '#0f172a' }}>{selectedScreen.impressions}</p>
+          <div style={{ padding: '25px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 style={{ color: '#0f172a', margin: '0 0 5px 0', fontSize: '20px' }}>Campaign Builder</h2>
+              <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>Select inventory from the map.</p>
+            </div>
+            <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 'bold' }}>Exit</button>
+          </div>
+          
+          <div style={{ flex: 1, padding: '25px', overflowY: 'auto', backgroundColor: '#ffffff' }}>
+            <h3 style={{ fontSize: '14px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px' }}>Selected Inventory</h3>
+            
+            {selectedScreen ? (
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', backgroundColor: '#f8fafc' }}>
+                <span style={{ backgroundColor: '#e0e7ff', color: '#4f46e5', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>{selectedScreen.format}</span>
+                <h3 style={{ margin: '10px 0', color: '#0f172a', fontSize: '18px' }}>{selectedScreen.name}</h3>
+                <p style={{ margin: '5px 0', color: '#475569', fontSize: '14px' }}>📍 {selectedScreen.city}</p>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '15px 0', padding: '10px 0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Est. Impressions</p>
+                    <p style={{ margin: 0, fontWeight: 'bold', color: '#0f172a' }}>{selectedScreen.impressions}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Daily Rate</p>
+                    <p style={{ margin: 0, fontWeight: 'bold', color: '#0f172a' }}>₹{selectedScreen.price}</p>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Daily Rate</p>
-                  <p style={{ margin: 0, fontWeight: 'bold', color: '#0f172a' }}>₹{selectedScreen.price}</p>
-                </div>
+
+                <button onClick={() => addToCart(selectedScreen)} style={{ width: '100%', backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>
+                  + Add to Plan
+                </button>
               </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 20px', border: '2px dashed #e2e8f0', borderRadius: '8px', color: '#94a3b8' }}>
+                <p style={{ fontSize: '30px', margin: '0 0 10px 0' }}>🗺️</p>
+                <p style={{ margin: 0 }}>Click a purple marker on the map to view screen details and pricing.</p>
+              </div>
+            )}
 
-              <button onClick={() => addToCart(selectedScreen)} style={{ width: '100%', backgroundColor: '#3b82f6', color: 'white', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>
-                + Add to Plan
-              </button>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px 20px', border: '2px dashed #e2e8f0', borderRadius: '8px', color: '#94a3b8' }}>
-              <p style={{ fontSize: '30px', margin: '0 0 10px 0' }}>🗺️</p>
-              <p style={{ margin: 0 }}>Click a purple marker on the map to view screen details and pricing.</p>
-            </div>
-          )}
-
-          {cart.length > 0 && (
-            <div style={{ marginTop: '30px' }}>
-              <h3 style={{ fontSize: '14px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px' }}>Your Plan ({cart.length})</h3>
-              {cart.map((item, index) => (
-                <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: '14px' }}>
-                  <span style={{ color: '#334155' }}>{item.name}</span>
-                  <span style={{ fontWeight: 'bold', color: '#0f172a' }}>₹{item.price}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div style={{ padding: '25px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '18px' }}>
-            <span style={{ color: '#64748b' }}>Total Cost:</span>
-            <span style={{ fontWeight: '900', color: '#0f172a' }}>₹{cartTotal.toLocaleString()}</span>
+            {cart.length > 0 && (
+              <div style={{ marginTop: '30px' }}>
+                <h3 style={{ fontSize: '14px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px' }}>Your Plan ({cart.length})</h3>
+                {cart.map((item, index) => (
+                  <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f1f5f9', fontSize: '14px' }}>
+                    <span style={{ color: '#334155' }}>{item.name}</span>
+                    <span style={{ fontWeight: 'bold', color: '#0f172a' }}>₹{item.price}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          
-          {/* 4. ATTACH THE ONCLICK EVENT */}
-          <button 
-            onClick={handleSubmitProposal}
-            disabled={cart.length === 0 || isSubmitting} 
-            style={{ width: '100%', backgroundColor: cart.length > 0 ? '#10b981' : '#cbd5e1', color: 'white', border: 'none', padding: '15px', borderRadius: '8px', fontWeight: 'bold', cursor: cart.length > 0 ? 'pointer' : 'not-allowed', fontSize: '16px' }}
-          >
-            {isSubmitting ? "Submitting..." : "Submit Request for Proposal"}
-          </button>
+
+          <div style={{ padding: '25px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '18px' }}>
+              <span style={{ color: '#64748b' }}>Total Cost:</span>
+              <span style={{ fontWeight: '900', color: '#0f172a' }}>₹{cartTotal.toLocaleString()}</span>
+            </div>
+            
+            <button 
+              onClick={handleSubmitProposal}
+              disabled={cart.length === 0 || isSubmitting} 
+              style={{ width: '100%', backgroundColor: cart.length > 0 ? '#10b981' : '#cbd5e1', color: 'white', border: 'none', padding: '15px', borderRadius: '8px', fontWeight: 'bold', cursor: cart.length > 0 ? 'pointer' : 'not-allowed', fontSize: '16px' }}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Request for Proposal"}
+            </button>
+          </div>
+        </div>
+
+        {/* RIGHT SIDE (Or Top half on Mobile): The Native Mapbox Container */}
+        <div className="dashboard-map">
+          <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
         </div>
       </div>
-
-      {/* RIGHT SIDE: The Native Mapbox Container */}
-      <div style={{ flex: 1, position: 'relative' }}>
-        <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
-      </div>
-    </div>
+    </>
   );
 }
